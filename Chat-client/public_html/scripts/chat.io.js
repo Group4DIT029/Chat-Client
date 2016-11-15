@@ -9,7 +9,6 @@
         
         serverDisplayName = 'MQTT Chat',
         serverDisplayColor = '#1c5380',
-       
 
         tmplt = {
             room: [
@@ -257,7 +256,7 @@
         var topic = message.destinationName;
         if(topic == 'ConnectingSpot/bot') {
             
-            var msag = new Messaging.Message(JSON.stringify({"clientIds": nickname})); 
+            var msag = new Messaging.Message(JSON.stringify({"_id": currentRoom,  "clientIds": nickname})); 
             msag.destinationName = 'ConnectingSpot/totalclients';
             mqttClient.send(msag);
             
