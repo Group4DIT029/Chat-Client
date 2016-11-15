@@ -111,22 +111,41 @@ iframe{text-align:center !important;}
 }
 
 .big-button-green:active{
-	
+	border-color: #256d33;
+	background: #369e4a;
 	color: rgba(255,255,255,0.8) !important;
 	text-shadow: 0 1px 0 rgba(0,0,0,0.3) !important;
 }
 .big-button-green.small{
 	font-size:18px;
 }
-.title-button{
-	
+.le-button{
+	padding:0 5px;
+	display:inline-block;
+	font-weight:bold;
+	border: 1px solid #329345;
+	font-size: 14px;
 	color: #fff !important;
-	
-        
-	
+	background-color: #47bc60;
+	border-radius:5px;
+	cursor:pointer;
+	background-image: url(/images/noise.png),-webkit-linear-gradient(top, #47bc60, #39a64e);
+	background-image: url(/images/noise.png),-moz-linear-gradient(top, #47bc60, #39a64e);
+	background-image: url(/images/noise.png),-o-linear-gradient(top, #47bc60, #39a64e);
+	background-image: url(/images/noise.png),-ms-linear-gradient(top, #47bc60, #39a64e);
+	background-image: url(/images/noise.png),linear-gradient(top, #47bc60, #39a64e);
+	filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0,StartColorStr='#47bc60', EndColorStr='#39a64e');
+	-webkit-box-shadow: 0 1px 1px rgba(0,0,0,0.1), inset 1px 0 0 rgba(255,255,255,0.05), inset -1px 0 0 rgba(255,255,255,0.05), inset 0 1px 0 rgba(0,0,0,0.08);
+	-moz-box-shadow: 0 1px 1px rgba(0,0,0,0.1), inset 1px 0 0 rgba(255,255,255,0.05), inset -1px 0 0 rgba(255,255,255,0.05), inset 0 1px 0 rgba(0,0,0,0.08);
+	ms-box-shadow: 0 1px 1px rgba(0,0,0,0.1), inset 1px 0 0 rgba(255,255,255,0.05), inset -1px 0 0 rgba(255,255,255,0.05), inset 0 1px 0 rgba(0,0,0,0.08);
+	-o-box-shadow: 0 1px 1px rgba(0,0,0,0.1), inset 1px 0 0 rgba(255,255,255,0.05), inset -1px 0 0 rgba(255,255,255,0.05), inset 0 1px 0 rgba(0,0,0,0.08);
+	box-shadow: 0 1px 1px rgba(0,0,0,0.1), inset 1px 0 0 rgba(255,255,255,0.05), inset -1px 0 0 rgba(255,255,255,0.05), inset 0 1px 0 rgba(0,0,0,0.08);
+	background-position: 50% 50%;
+	text-shadow: 0 1px 1px #2c803c;
 }
-.title-button:active{
-	
+.le-button:active{
+	border-color: #256d33;
+	background: #369e4a;
 	color: rgba(255,255,255,0.8) !important;
 	text-shadow: 0 1px 0 rgba(0,0,0,0.3) !important;
 }
