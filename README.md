@@ -2,7 +2,7 @@
 - mqtt chat client 
 - the original version of the chat is located in https://github.com/happiestcoder/mqtt-chat
 
-# Changes mades 
+# Changes made
 
 - removing the server
 
@@ -10,8 +10,12 @@
 
 - 'old' room where the client can see his the old messages of the specific chat room(an erlang client will responsible of storing and publishing the queries).
 
-- the ability to directly chat with another client by creating a room comprimising of both their client Ids.
+- The ability to directly chat with another client by creating a room comprimising of both their client Ids.
 
-- removed manually add user (the user nickname and UUID(which will be the client Id) will be handled elsewhere)
+- Removed manually add user (the user nickname and UUID(which will be the client Id) will be handled elsewhere)
 
-- added update user online that exist in the room or subscribed to a certain topic
+- added update online users
+
+# Usage
+- Private chat entered by clicking on the user you wish to chat with and entering the room.
+- Update the client list by clicking on icon next to "see all users" notification
