@@ -220,15 +220,6 @@
         mqttClient = new Messaging.Client(serverAddress, port, nickname);
         mqttClient.connect({onSuccess:onConnect, keepAliveInterval: 0});
         mqttClient.onMessageArrived = onMessageArrived;
-         lwt = new Messaging.Message("-");
-        lwt.destinationName = 'topic';
-         mqttClient.send(lwt);
-         lwt.qos = 2;
-         lwt.retained = true;
-         mqtt.lwt.onEveryDisconnect=true;
-         willMessage = lwt;
-
-        
     }
     
     function seUser(){
