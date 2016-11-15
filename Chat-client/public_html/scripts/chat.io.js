@@ -1,21 +1,15 @@
 (function($){
 
     // create global app parameters...
-    var ROOM_MAX_LENGTH = 10,
-        lockShakeAnimation = false,
-        mqttClient = null,
-       
-        nickname = randomString(10),
-
-        currentRoom = null,
-        isRoomProtected = false,
-
-    // server information
-        serverAddress = '', //server ip
+    var serverAddress = '', //server ip
         port =  8,  //port
-        serverDisplayName = 'MQTT Chat Server',
+         mqttClient = null,
+        nickname = randomString(10),
+        currentRoom = null,
+        
+        serverDisplayName = 'MQTT Chat',
         serverDisplayColor = '#1c5380',
-        keywordRoomNames = ['addroom', 'removeroom', 'totalrooms', 'totalclients', 'online', 'offline'],
+       
 
         tmplt = {
             room: [
@@ -58,40 +52,12 @@
             handleMessage();
         });
 
-        $('#nickname-popup .input input').on('keydown', function(e){
-            var key = e.which || e.keyCode;
-            if(key == 13) { handleNickname(); }
-        });
-
-        $('#nickname-popup .begin').on('click', function(){
-            handleNickname();
-        });
-
-       
-
-        $('#addroom-popup .input input').on('keydown', function(e){
-            var key = e.which || e.keyCode;
-            if(key == 13) { createRoom(); }
-        });
-
-        $('#addroom-popup .create').on('click', function(){
-            createRoom();
-        });
-
         $('.big-button-green.start').on('click', function(){
-            $('#nickname-popup .input input').val('');
-            Avgrund.hide;
             connect();
-          
-    
         });
 
-        $('.chat-rooms .title-button').on('click', function(){
-            $('#addroom-popup .input input').val('');
-            Avgrund.show('#addroom-popup');
-            window.setTimeout(function(){
-                $('#addroom-popup .input input').focus();
-            },100);
+        $('.chat-right .le-button').on('click', function(){
+            seUser();
         });
 
         $('.chat-rooms ul').on('scroll', function(){
@@ -111,9 +77,7 @@
 
         $('.chat-rooms ul li').live('click', function(){
             var room = $(this).attr('data-roomId');
-            var protected = $($(this).children('div')[0]).css('display') === 'inline';
             if(room != currentRoom){
-                
                 
                     mqttClient.unsubscribe(currentRoom);
                     mqttClient.subscribe(room);
@@ -121,7 +85,22 @@
                 
             }
         });
+        
+        $('.chat-clients ul li').live('click', function(){
+            var client = $(this).attr('data-clientId');
+            if(client != nickname){
+                
+                var msg = new Messaging.Message(JSON.stringify({room:nickname+'-'+client}));
+                msg.destinationName = client;
+                mqttClient.send(msg);
+                addRoom(nickname+'-'+client,false,false);
+                
+            }
+        });
     }
+    function topicName(a) {
+    return a.substring(a.lastIndexOf("/")+1);
+  } 
 
     function addRoom(name, announce, protected){
         var lockCss = 'display: ' + (protected? 'inline' : 'none');
@@ -153,49 +132,6 @@
         }
     }
 
-    function removeClient(client){
-        $('.chat-clients ul li[data-clientId="' + client + '"]').remove();
-    }
-
-    function createRoom(){
-        var room = $('#addroom-popup .input input').val().trim();
-        var protected = $('#passwordProtection').prop('checked');
-        if(protected && !$('#password').val()){
-            shake('#addroom-popup', '#addroom-popup .input input', 'tada', 'yellow');
-        } else if(room && room.length <= ROOM_MAX_LENGTH && room != currentRoom
-            && keywordRoomNames.indexOf(room) == -1){
-            if(protected){
-                var password = protected ? $('#password').val() : undefined;
-                $.post('/setPassword', {room: room, password: password})
-                 .done(function(data){
-                      completeRoomCreation(room, protected);
-                 });
-            } else{
-                completeRoomCreation(room, protected);
-            }
-
-        } else {
-            shake('#addroom-popup', '#addroom-popup .input input', 'tada', 'yellow');
-            $('#addroom-popup .input input').val('');
-        }
-    }
-
-    function completeRoomCreation(room, protected){
-        // show room creating message
-        $('.chat-shadow').show().find('.content').html('Creating room: ' + room + '...');
-        $('.chat-shadow').animate({ 'opacity': 1 }, 200);
-
-        // unsubscribe from the current room
-        mqttClient.unsubscribe(currentRoom);
-        // create and subscribe to the new room
-        mqttClient.subscribe(room);
-        Avgrund.hide();
-        var msg = new Messaging.Message(JSON.stringify({room:room, nickname:nickname, protected: protected}));
-        msg.destinationName = 'addroom';
-        mqttClient.send(msg);
-        initRoom(room, protected);
-    }
-
     function setCurrentRoom(room, protected){
         currentRoom = room;
         isRoomProtected = protected;
@@ -210,20 +146,17 @@
         return text;
     }
 
-
     // handle the client messages
     function handleMessage(){
         if(currentRoom != 'old'){
         var message = $('.chat-input input').val().trim();
         if(message){
             // send the message to the server with the room name
-            var msg = new Messaging.Message(JSON.stringify({nickname: nickname, message: message}));
+            var msg = new Messaging.Message(JSON.stringify({nickname: nickname, message: message, timestamp: Date.now()}));
             msg.destinationName = currentRoom;
             mqttClient.send(msg);
             $('.chat-input input').val('');
-        } else {
-            shake('.chat', '.chat input', 'wobble', 'yellow');
-        }
+        } 
     }}
 
     function handlePictureUpload(files, callback) {
@@ -261,7 +194,7 @@
         img.src= message;
         img.onload = function() {
             context.drawImage(img,0,0,200,180);
-        }
+        };
         setMessageCss($html, isMe, isServer);
     }
 
@@ -282,26 +215,35 @@
             (date.getMinutes() < 10 ? '0' + date.getMinutes().toString() : date.getMinutes());
     }
 
-    function shake(container, input, effect, bgColor){
-        if(!lockShakeAnimation){
-            lockShakeAnimation = true;
-            $(container).addClass(effect);
-            $(input).addClass(bgColor);
-            window.setTimeout(function(){
-                $(container).removeClass(effect);
-                $(input).removeClass(bgColor);
-                $(input).focus();
-                lockShakeAnimation = false;
-            }, 1500);
-        }
-    }
-
     function connect(){
         $('.chat-shadow .content').html('Connecting...');
         mqttClient = new Messaging.Client(serverAddress, port, nickname);
         mqttClient.connect({onSuccess:onConnect, keepAliveInterval: 0});
         mqttClient.onMessageArrived = onMessageArrived;
+         lwt = new Messaging.Message("-");
+        lwt.destinationName = 'topic';
+         mqttClient.send(lwt);
+         lwt.qos = 2;
+         lwt.retained = true;
+         mqtt.lwt.onEveryDisconnect=true;
+         willMessage = lwt;
+
         
+    }
+    
+    function seUser(){
+        if(currentRoom != 'old'){
+        $('.chat-clients ul').empty();
+            addClient({ nickname: nickname, clientId: nickname }, false, true);
+        $('.chat-shadow').animate({ 'opacity': 0 }, 200, function(){
+            $(this).hide();
+            $('.chat input').focus();
+        });
+        mqttClient.subscribe(nickname);
+        var msig = new Messaging.Message(JSON.stringify({"message": "bot"}));
+        msig.destinationName = 'ConnectingSpot/bot';
+        mqttClient.send(msig);
+      }
     }
 
     function onConnect() {
@@ -309,75 +251,42 @@
             $(this).hide();
             $('.chat input').focus();
         });
-        currentRoom = 'Lobby';
-        isRoomProtected = false;
-        mqttClient.subscribe(currentRoom);
-        mqttClient.subscribe('addroom');
-        mqttClient.subscribe('removeroom');
-        mqttClient.subscribe('totalrooms');
-        mqttClient.subscribe('totalclients');
-        mqttClient.subscribe('online');
-        mqttClient.subscribe('offline');
-        mqttClient.subscribe('old');
+        currentRoom = '1';
+        mqttClient.subscribe('ConnectingSpot/Chatroom/'+currentRoom);
+        mqttClient.subscribe('ConnectingSpot/bot');
+        mqttClient.subscribe('ConnectingSpot/totalclients');
         
         initRoom(currentRoom);
-        
-          
-        
-      
         addRoom('old',false,false);
-        
+        seUser();
     };
 
    function onMessageArrived(message) {
         var msg = JSON.parse(message.payloadString);
         var topic = message.destinationName;
-        if(topic == 'addroom') {
+        if(topic == 'ConnectingSpot/bot') {
             
-            var msag = new Messaging.Message(JSON.stringify({"_id": currentRoom,  "clientIds": [nickname]}));
-            msag.destinationName = 'totalclients';
+            var msag = new Messaging.Message(JSON.stringify({"clientIds": nickname})); 
+            msag.destinationName = 'ConnectingSpot/totalclients';
             mqttClient.send(msag);
             
-            
-        } else if(topic == 'removeroom') {
-            removeRoom(msg.room, false);
-        } else if(topic == 'totalrooms') {
-            for(var i = 0, len = msg.length; i < len; i++){
-                if(msg[i]._id && msg[i]._id != ''){
-                    var protected = msg[i].protected === undefined ? false : msg[i].protected;
-                    addRoom(msg[i]._id, false, protected);
-                }
-            }
-
-        } else if(topic == 'online') {
-            if(msg.nickname != nickname && msg.room == currentRoom) {
-                // show a message about this client
-                insertMessage(serverDisplayName, msg.nickname + ' has joined the room...', true, false, true);
-
-            }
-        } else if(topic == 'offline') {
-            if(msg.nickname != nickname && msg.room == currentRoom) {
-                // if announce is true, show a message about this room
-                insertMessage(serverDisplayName, msg.nickname + ' has left the room...', true, false, true);
-                removeClient(msg.nickname);
-            }
-        }else if(topic == 'totalclients') {
-            if(msg._id == currentRoom) {
+        } else if(topic == nickname) {
+            addRoom(msg.room,false,false);
+        } else if(topic == 'ConnectingSpot/totalclients') {
+            if(msg._id == currentRoom && msg._id != 'old') {
                 for(var i = 0, len = msg.clientIds.length; i < len; i++){
-                    if(msg.clientIds[i]&& msg.clientIds[i] != nickname){
-                        addClient({nickname: msg.clientIds[i], clientId: msg.clientIds[i]}, false);
+                    if(msg.clientIds && msg.clientIds != nickname){
+                        addClient({nickname: msg.clientIds, clientId: msg.clientIds}, false);
                     }
                 }
             }
         } else {
             if(msg.type == 'image') {
                 insertImage(msg.nickname, msg.message, true, msg.nickname == nickname, false);
+                seUser();
             } else  {
                 insertMessage(msg.nickname, msg.message, true, msg.nickname == nickname, false);
-                 var msig = new Messaging.Message(JSON.stringify({"nickname": "login"}));
-                 msig.destinationName = 'addroom';
-                 mqttClient.send(msig);
-        
+                seUser();
             }
         }
     }
@@ -391,8 +300,7 @@
         $('.chat-shadow').animate({ 'opacity': 0 }, 200, function(){
             $(this).hide();
             $('.chat input').focus();
-        });
-
+        });  
     }
 
     function switchRoom(room) {
@@ -404,7 +312,7 @@
             $(this).hide();
             $('.chat input').focus();
         });
-
+        seUser();
     }
 
     $(function(){
