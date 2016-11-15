@@ -2,7 +2,7 @@
 - mqtt chat client 
 - the original version of the chat is located in https://github.com/happiestcoder/mqtt-chat
 
-- Changes mades 
+# Changes mades 
 
 - removing the server
 
