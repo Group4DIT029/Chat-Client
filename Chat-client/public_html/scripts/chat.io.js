@@ -1,8 +1,8 @@
 (function($){
 
     // create global app parameters...
-    var serverAddress = '', //server ip
-        port =  8,  //port
+    var serverAddress = 'broker.mqttdashboard.com', //server ip
+        port = 8000, //port
          mqttClient = null,
         nickname = randomString(10),
         currentRoom = null,
