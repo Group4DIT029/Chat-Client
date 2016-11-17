@@ -242,7 +242,7 @@
             $('.chat input').focus();
         });
         currentRoom = '1';
-        mqttClient.subscribe('ConnectingSpot/Chatroom/'+currentRoom);
+        mqttClient.subscribe(currentRoom);
         mqttClient.subscribe('ConnectingSpot/bot');
         mqttClient.subscribe('ConnectingSpot/totalclients');
         
