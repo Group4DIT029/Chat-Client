@@ -3,13 +3,10 @@
     // create global app parameters...
     var serverAddress = 'broker.mqttdashboard.com', //server ip
         port = 8000, //port
-         mqttClient = null,
-        nickname = randomString(10),
+        mqttClient = null,
+        nickname = randomString(6),
         currentRoom = null,
-        
-        serverDisplayName = 'MQTT Chat',
-        serverDisplayColor = '#1c5380',
-
+   
         tmplt = {
             room: [
                 '<li data-roomId="${room}">',
@@ -76,11 +73,17 @@
 
         $('.chat-rooms ul li').live('click', function(){
             var room = $(this).attr('data-roomId');
+         
             if(room != currentRoom){
                 
-                    mqttClient.unsubscribe(currentRoom);
-                    mqttClient.subscribe(room);
+                    mqttClient.unsubscribe(rtopicName(currentRoom));
+                    mqttClient.subscribe(atopicName(room));
+                    
                     switchRoom(room);
+                    if(currentRoom != '1' && currentRoom != 'old'){
+                        removeRoom(room);
+                    }
+                    
                 
             }
         });
@@ -97,8 +100,12 @@
             }
         });
     }
-    function topicName(a) {
+    function rtopicName(a) {
     return a.substring(a.lastIndexOf("/")+1);
+  } 
+  
+   function atopicName(a) {
+    return 'ConnectingSpot/Chatroom/'+a;
   } 
 
     function addRoom(name, announce, protected){
@@ -106,19 +113,12 @@
         if($('.chat-rooms ul li[data-roomId="' + name + '"]').length == 0){
             $.tmpl(tmplt.room, { room: name, lockCss: lockCss}).appendTo('.chat-rooms ul');
             // if announce is true, show a message about this room
-            
-            if(announce){
-                insertMessage(serverDisplayName, 'The room `' + name + '` created...', true, false, true);
-            }
+          
         }
     }
 
-    function removeRoom(name, announce){
+    function removeRoom(name){
         $('.chat-rooms ul li[data-roomId="' + name + '"]').remove();
-        // if announce is true, show a message about this room
-        if(announce){
-            insertMessage(serverDisplayName, 'The room `' + name + '` destroyed...', true, false, true);
-        }
     }
 
     function addClient(client, announce, isMe){
@@ -152,10 +152,10 @@
         if(message){
             // send the message to the server with the room name
             var msg = new Messaging.Message(JSON.stringify({nickname: nickname, message: message, timestamp: Date.now()}));
-            msg.destinationName = currentRoom;
+            msg.destinationName = atopicName(currentRoom);
             mqttClient.send(msg);
             $('.chat-input input').val('');
-        } 
+        } seUser();
     }}
 
     function handlePictureUpload(files, callback) {
@@ -164,7 +164,7 @@
                 var reader = new FileReader();
                 reader.onloadend = function(evt) {
                     var msg = new Messaging.Message(JSON.stringify({nickname: nickname, message: evt.target.result, type: 'image'}));
-                    msg.destinationName = currentRoom;
+                    msg.destinationName = atopicName(currentRoom);
                     mqttClient.send(msg);
                 };
                 reader.readAsDataURL(files[i]);
@@ -173,11 +173,11 @@
     }
     // insert a message to the chat window, this function can be
     // called with some flags
-    function insertMessage(sender, message, showTime, isMe, isServer){
+    function insertMessage(sender, message, time, isMe, isServer){
         var $html = $.tmpl(tmplt.message, {
             sender: sender,
             text: message,
-            time: showTime ? getTime() : ''
+            time: getTime(time)
         });
         setMessageCss($html, isMe, isServer);
     }
@@ -185,7 +185,7 @@
     function insertImage(sender, message, showTime, isMe, isServer){
         var $html = $.tmpl(tmplt.image, {
             sender: sender,
-            time: showTime ? getTime() : ''
+            time: times(time)
         });
         var img = new Image();
         var canvas = $html.find('.img_uploaded')[0];
@@ -196,20 +196,21 @@
         };
         setMessageCss($html, isMe, isServer);
     }
+    function times(timestamp){
+        var t = new Date(timestamp);
+        return t;
+    }
 
     function setMessageCss($html, isMe, isServer){
         if(isMe){
             $html.addClass('marker');
         }
-        if(isServer){
-            $html.find('.sender').css('color', serverDisplayColor);
-        }
         $html.appendTo('.chat-messages ul');
         $('.chat-messages').animate({ scrollTop: $('.chat-messages ul').height() }, 100);
     }
 
-    function getTime(){
-        var date = new Date();
+    function getTime(tim){
+        var date = new Date(tim);
         return (date.getHours() < 10 ? '0' + date.getHours().toString() : date.getHours()) + ':' +
             (date.getMinutes() < 10 ? '0' + date.getMinutes().toString() : date.getMinutes());
     }
@@ -242,7 +243,7 @@
             $('.chat input').focus();
         });
         currentRoom = '1';
-        mqttClient.subscribe(currentRoom);
+        mqttClient.subscribe(atopicName(currentRoom));
         mqttClient.subscribe('ConnectingSpot/bot');
         mqttClient.subscribe('ConnectingSpot/totalclients');
         
@@ -263,7 +264,7 @@
         } else if(topic == nickname) {
             addRoom(msg.room,false,false);
         } else if(topic == 'ConnectingSpot/totalclients') {
-            if(msg._id == currentRoom && msg._id != 'old') {
+            if(msg._id == currentRoom && msg._id != atopicName('old')) {
                 for(var i = 0, len = msg.clientIds.length; i < len; i++){
                     if(msg.clientIds && msg.clientIds != nickname){
                         addClient({nickname: msg.clientIds, clientId: msg.clientIds}, false);
@@ -273,10 +274,10 @@
         } else {
             if(msg.type == 'image') {
                 insertImage(msg.nickname, msg.message, true, msg.nickname == nickname, false);
-                seUser();
+             
             } else  {
-                insertMessage(msg.nickname, msg.message, true, msg.nickname == nickname, false);
-                seUser();
+                insertMessage(msg.nickname, msg.message, msg.timestamp, msg.nickname == nickname, false);
+              
             }
         }
     }
@@ -284,7 +285,6 @@
     function initRoom(room, protected) {
         addRoom(room, false, protected);
         setCurrentRoom(room, protected);
-        insertMessage(serverDisplayName, 'Welcome to the room: `' + room + '`... enjoy!', true, false, true);
         $('.chat-clients ul').empty();
         addClient({ nickname: nickname, clientId: nickname }, false, true);
         $('.chat-shadow').animate({ 'opacity': 0 }, 200, function(){
@@ -295,7 +295,6 @@
 
     function switchRoom(room) {
         setCurrentRoom(room);
-        insertMessage(serverDisplayName, 'Welcome to the room: `' + room + '`... enjoy!', true, false, true);
         $('.chat-clients ul').empty();
         addClient({ nickname: nickname, clientId: nickname }, false, true);
         $('.chat-shadow').animate({ 'opacity': 0 }, 200, function(){
