@@ -76,7 +76,7 @@
          
             if(room != currentRoom){
                 
-                    mqttClient.unsubscribe(rtopicName(currentRoom));
+                    mqttClient.unsubscribe(atopicName(currentRoom));
                     mqttClient.subscribe(atopicName(room));
                     
                     switchRoom(room);
