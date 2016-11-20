@@ -3,7 +3,7 @@
     // create global app parameters...
     var serverAddress = 'broker.mqttdashboard.com', //server ip
         port = 8000, //port
-        mqttClient = null,
+       mqttClient = null,
         nickname = randomString(6),
         currentRoom = null,
    
@@ -36,7 +36,6 @@
         mqttClient.connect({onSuccess:onConnect, keepAliveInterval: 0});
         mqttClient.onMessageArrived = onMessageArrived;
     }
-        
     
          function onConnect() {
         $('.chat input').focus();
@@ -71,8 +70,6 @@
         $('.chat-submit button').on('click', function(){
             handleMessage();
         });
-
-       
 
         $('.chat-right .le-button').on('click', function(){
             seUser();
@@ -133,8 +130,7 @@
         var lockCss = 'display: ' + (protected? 'inline' : 'none');
         if($('.chat-rooms ul li[data-roomId="' + name + '"]').length == 0){
             $.tmpl(tmplt.room, { room: name, lockCss: lockCss}).appendTo('.chat-rooms ul');
-            // if announce is true, show a message about this room
-          
+           
         }
     }
 
@@ -242,12 +238,7 @@
     function seUser(){
         if(currentRoom != 'old'){
         $('.chat-clients ul').empty();
-            addClient({ nickname: nickname, clientId: nickname }, false, true);
-        $('.chat-shadow').animate({ 'opacity': 0 }, 200, function(){
-            $(this).hide();
-            $('.chat input').focus();
-        });
-       
+        addClient({ nickname: nickname, clientId: nickname }, false, true);
         var msig = new Messaging.Message(JSON.stringify({"message": "bot"}));
         msig.destinationName = 'ConnectingSpot/bot';
         msig.qos = 1;
@@ -255,9 +246,6 @@
       }
     }
     
-
-   
-
    function onMessageArrived(message) {
         var msg = JSON.parse(message.payloadString);
         var topic = message.destinationName;
@@ -284,7 +272,6 @@
              
             } else  {
                 insertMessage(msg.nickname, msg.message, msg.timestamp, msg.nickname == nickname, false);
-              
             }
         }
     }
@@ -294,21 +281,12 @@
         setCurrentRoom(room, protected);
         $('.chat-clients ul').empty();
         addClient({ nickname: nickname, clientId: nickname }, false, true);
-        $('.chat-shadow').animate({ 'opacity': 0 }, 200, function(){
-            $(this).hide();
-            $('.chat input').focus();
-        });  
     }
 
     function switchRoom(room) {
         setCurrentRoom(room);
         $('.chat-clients ul').empty();
         addClient({ nickname: nickname, clientId: nickname }, false, true);
-        $('.chat-shadow').animate({ 'opacity': 0 }, 200, function(){
-            $(this).hide();
-            $('.chat input').focus();
-           
-        });
         seUser();
     }
 
