@@ -3,7 +3,7 @@
     // create global app parameters...
     var serverAddress = 'broker.mqttdashboard.com', //server ip
         port = 8000, //port
-       mqttClient = null,
+        mqttClient = null,
         nickname = randomString(6),
         currentRoom = null,
    
@@ -53,7 +53,7 @@
         window.onload = function() {
           connect();
         };
-
+        
     function bindDOMEvents(){
         $('.chat-input input').on('keydown', function(e){
             var key = e.which || e.keyCode;
@@ -129,8 +129,7 @@
     function addRoom(name, announce, protected){
         var lockCss = 'display: ' + (protected? 'inline' : 'none');
         if($('.chat-rooms ul li[data-roomId="' + name + '"]').length == 0){
-            $.tmpl(tmplt.room, { room: name, lockCss: lockCss}).appendTo('.chat-rooms ul');
-           
+            $.tmpl(tmplt.room, { room: name, lockCss: lockCss}).appendTo('.chat-rooms ul');  
         }
     }
 
@@ -161,7 +160,6 @@
             text += possible.charAt(Math.floor(Math.random() * possible.length));
         return text;
     }
-
     // handle the client messages
     function handleMessage(){
         if(currentRoom != 'old'){
@@ -182,7 +180,7 @@
                 // send the message to the server with the room name
                 var reader = new FileReader();
                 reader.onloadend = function(evt) {
-                    var msg = new Messaging.Message(JSON.stringify({nickname: nickname, message: evt.target.result, type: 'image'}));
+                    var msg = new Messaging.Message(JSON.stringify({nickname: nickname, message: evt.target.result,timestamp: Date.now(), type: 'image'}));
                     msg.destinationName = atopicName(currentRoom);
                     msg.qos = 1;
                     mqttClient.send(msg);
@@ -215,10 +213,6 @@
             context.drawImage(img,0,0,200,180);
         };
         setMessageCss($html, isMe, isServer);
-    }
-    function times(timestamp){
-        var t = new Date(timestamp);
-        return t;
     }
 
     function setMessageCss($html, isMe, isServer){
@@ -268,7 +262,7 @@
             }
         } else {
             if(msg.type == 'image') {
-                insertImage(msg.nickname, msg.message, true, msg.nickname == nickname, false);
+                insertImage(msg.nickname, msg.message, msg.timestamp, msg.nickname == nickname, false);
              
             } else  {
                 insertMessage(msg.nickname, msg.message, msg.timestamp, msg.nickname == nickname, false);
@@ -285,8 +279,6 @@
 
     function switchRoom(room) {
         setCurrentRoom(room);
-        $('.chat-clients ul').empty();
-        addClient({ nickname: nickname, clientId: nickname }, false, true);
         seUser();
     }
 
