@@ -3,7 +3,7 @@
     // create global app parameters...
     var serverAddress = 'broker.mqttdashboard.com', //server ip
         port = 8000, //port
-        mqttClient = null,
+         mqttClient = null,
         nickname = randomString(6),
         currentRoom = null,
    
@@ -48,12 +48,31 @@
         addRoom('old',false,false);
         seUser();
         mqttClient.subscribe(nickname);
+        var msag = new Messaging.Message(JSON.stringify({"_id": currentRoom,  "clientIds": nickname})); 
+            msag.destinationName = 'ConnectingSpot/test';
+            msag.qos = 1;
+            mqttClient.send(msag);  
+         
          };
     
         window.onload = function() {
           connect();
         };
         
+        
+       
+jQuery(window).bind(
+    "beforeunload", 
+    function() { 
+        var msag = new Messaging.Message(JSON.stringify({"_id": "currefdfntRoom",  "clientIds": "nickfdfdname"})); 
+            msag.destinationName = 'ConnectingSpot/test';
+            msag.qos = 1;
+            mqttClient.send(msag);
+    }
+)
+
+
+     
     function bindDOMEvents(){
         $('.chat-input input').on('keydown', function(e){
             var key = e.which || e.keyCode;
@@ -62,7 +81,7 @@
 
         $('.chat-upload input').on('change', function(){
             var uploadedFiles = this.files;
-            handlePictureUpload(uploadedFiles, function() {
+                handlePictureUpload(uploadedFiles, function() {
                 this.files = undefined;
             });
         });
@@ -94,13 +113,25 @@
             var room = $(this).attr('data-roomId');
          
             if(room != currentRoom){
+               
                 if(currentRoom != '1' && currentRoom != 'old'){
                         removeRoom(currentRoom);
                     }
+                    if(room == 'old'){
+                    mqttClient.unsubscribe(atopicName(currentRoom));
+                    mqttClient.subscribe(atopicName(nickname));
+                    switchRoom(room);
+                    var msg = new Messaging.Message(JSON.stringify({room: atopicName(currentRoom), nickname: atopicName(nickname)}));
+                        msg.destinationName = 'ConnectingSpot/Database/select';
+                        msg.qos = 1;
+                        mqttClient.send(msg);
+                     
+                }else{
                     mqttClient.unsubscribe(atopicName(currentRoom));
                     mqttClient.subscribe(atopicName(room));
                     
                     switchRoom(room);
+                }
                     
             }
         });
@@ -163,6 +194,7 @@
     // handle the client messages
     function handleMessage(){
         if(currentRoom != 'old'){
+       
         var message = $('.chat-input input').val().trim();
         if(message){
             // send the message to the server with the room name
