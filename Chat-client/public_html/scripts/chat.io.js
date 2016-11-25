@@ -3,7 +3,7 @@
     // create global app parameters...
     var serverAddress = 'broker.mqttdashboard.com', //server ip
         port = 8000, //port
-         mqttClient = null,
+       mqttClient = null,
         nickname = randomString(6),
         currentRoom = null,
    
@@ -51,6 +51,7 @@
         var msag = new Messaging.Message(JSON.stringify({"_id": currentRoom,  "clientIds": nickname})); 
             msag.destinationName = 'ConnectingSpot/test';
             msag.qos = 1;
+            msag.retained = true;
             mqttClient.send(msag);  
          
          };
@@ -64,9 +65,10 @@
 jQuery(window).bind(
     "beforeunload", 
     function() { 
-        var msag = new Messaging.Message(JSON.stringify({"_id": "currefdfntRoom",  "clientIds": "nickfdfdname"})); 
+        var msag = new Messaging.Message(''); 
             msag.destinationName = 'ConnectingSpot/test';
             msag.qos = 1;
+            msag.retained = true;
             mqttClient.send(msag);
     }
 )
@@ -119,9 +121,9 @@ jQuery(window).bind(
                     }
                     if(room == 'old'){
                     mqttClient.unsubscribe(atopicName(currentRoom));
-                    mqttClient.subscribe(atopicName(nickname));
+                    mqttClient.subscribe(atopicName('old'/nickname));
                     switchRoom(room);
-                    var msg = new Messaging.Message(JSON.stringify({room: atopicName(currentRoom), nickname: atopicName(nickname)}));
+                    var msg = new Messaging.Message(JSON.stringify({room: atopicName(currentRoom), id: atopicName('old'/nickname)}));
                         msg.destinationName = 'ConnectingSpot/Database/select';
                         msg.qos = 1;
                         mqttClient.send(msg);
