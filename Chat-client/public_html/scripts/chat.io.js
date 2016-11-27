@@ -1,9 +1,30 @@
+/**
+ * An mqtt chatt client originally connected to a backend written in node.js and using a mosca module as the broker
+ * Author: original authour happiestcoder
+ * source: https://github.com/happiestcoder/mqtt-chat
+ * Licences: The MIT License (MIT)
+ * Copyright: (c) https://github.com/happiestcoder/mqtt-chat
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * revision:
+ * 2016-11-27, Sayf Rashid:
+ *      - Changes made as part of the course DIT029 H16 Project: Software Architecture for Distributed Systems in the SEM program in Gothenburg university. 
+ *      - Removing the server, we are going to use the PRATA broker and erlang will be responsible for connecting to the mysql server and handling the chat history. 
+ *      - Implementing all the server functionality(either through an erlang client or finding a variant by using the chat client directly). For example seeing which clients are subscribing to the chatroom.
+ *      - 'old' room where the client can see his the chat history of the specific chat room(an erlang client will responsible of storing and publishing the old messages).
+ *      - Private chat, the ability to directly chat with another client by creating a room comprimising of both their client Ids.
+ *      - Removed manually add user (the user nickname and UUID(which will be the client Id) will be handled elsewhere).
+ */  
+
 (function($){
 
     // create global app parameters...
     var serverAddress = 'broker.mqttdashboard.com', //server ip
         port = 8000, //port
-       mqttClient = null,
+        mqttClient = null,
         nickname = randomString(6),
         currentRoom = null,
    
@@ -58,9 +79,7 @@
     
         window.onload = function() {
           connect();
-        };
-        
-        
+        };   
        
 jQuery(window).bind(
     "beforeunload", 
@@ -72,9 +91,7 @@ jQuery(window).bind(
             mqttClient.send(msag);
     }
 )
-
-
-     
+   
     function bindDOMEvents(){
         $('.chat-input input').on('keydown', function(e){
             var key = e.which || e.keyCode;
