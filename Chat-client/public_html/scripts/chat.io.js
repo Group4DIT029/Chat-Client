@@ -79,7 +79,9 @@
     
         window.onload = function() {
           connect();
-        };   
+        };
+        
+        
        
 jQuery(window).bind(
     "beforeunload", 
@@ -91,7 +93,9 @@ jQuery(window).bind(
             mqttClient.send(msag);
     }
 )
-   
+
+
+     
     function bindDOMEvents(){
         $('.chat-input input').on('keydown', function(e){
             var key = e.which || e.keyCode;
@@ -137,13 +141,14 @@ jQuery(window).bind(
                         removeRoom(currentRoom);
                     }
                     if(room == 'old'){
-                    mqttClient.unsubscribe(atopicName(currentRoom));
-                    mqttClient.subscribe(atopicName('old'/nickname));
-                    switchRoom(room);
-                    var msg = new Messaging.Message(JSON.stringify({room: atopicName(currentRoom), id: atopicName('old'/nickname)}));
-                        msg.destinationName = 'ConnectingSpot/Database/select';
-                        msg.qos = 1;
-                        mqttClient.send(msg);
+                        var theRoom = currentRoom;
+                        mqttClient.unsubscribe(atopicName(currentRoom));
+                        mqttClient.subscribe('ConnectingSpot/'+ nickname);
+                        switchRoom(room);
+                        var msg = new Messaging.Message(JSON.stringify({room: atopicName(theRoom), id: 'ConnectingSpot/'+nickname}));
+                            msg.destinationName = 'ConnectingSpot/Database/select';
+                            msg.qos = 1;
+                            mqttClient.send(msg);
                      
                 }else{
                     mqttClient.unsubscribe(atopicName(currentRoom));
@@ -168,9 +173,6 @@ jQuery(window).bind(
             }
         });
     }
-    function rtopicName(a) {
-    return a.substring(a.lastIndexOf("/")+1);
-  } 
   
    function atopicName(a) {
     return 'ConnectingSpot/Chatroom/'+a;
@@ -243,6 +245,10 @@ jQuery(window).bind(
     // insert a message to the chat window, this function can be
     // called with some flags
     function insertMessage(sender, message, time, isMe, isServer){
+        if (typeof time === 'string' || time instanceof String){
+            var a = parseInt(time);
+            time = a;
+        }
         var $html = $.tmpl(tmplt.message, {
             sender: sender,
             text: message,
@@ -252,6 +258,10 @@ jQuery(window).bind(
     }
 
     function insertImage(sender, message, time, isMe, isServer){
+        if (typeof time === 'string' || time instanceof String){
+            var a = parseInt(time);
+            time = a;
+        }
         var $html = $.tmpl(tmplt.image, {
             sender: sender,
             time: times(time)
