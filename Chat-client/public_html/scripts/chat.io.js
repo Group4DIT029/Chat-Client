@@ -143,9 +143,9 @@ jQuery(window).bind(
                     if(room == 'old'){
                         var theRoom = currentRoom;
                         mqttClient.unsubscribe(atopicName(currentRoom));
-                        mqttClient.subscribe('ConnectingSpot/'+ nickname);
+                        mqttClient.subscribe('ConnectingSpot/'+theRoom+'/'+nickname);
                         switchRoom(room);
-                        var msg = new Messaging.Message(JSON.stringify({room: atopicName(theRoom), id: 'ConnectingSpot/'+nickname}));
+                        var msg = new Messaging.Message(JSON.stringify({room: atopicName(theRoom), id: 'ConnectingSpot/'+theRoom+'/'+nickname}));
                             msg.destinationName = 'ConnectingSpot/Database/select';
                             msg.qos = 1;
                             mqttClient.send(msg);
