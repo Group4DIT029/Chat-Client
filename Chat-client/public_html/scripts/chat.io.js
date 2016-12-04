@@ -27,6 +27,7 @@
         mqttClient = null,
         nickname = randomString(6),
         currentRoom = null,
+        nick = null,
    
         tmplt = {
             room: [
@@ -52,50 +53,62 @@
             ].join("")
         };
         
-        function connect(){
+    function connect(){
         mqttClient = new Messaging.Client(serverAddress, port, nickname);
         mqttClient.connect({onSuccess:onConnect, keepAliveInterval: 0});
         mqttClient.onMessageArrived = onMessageArrived;
     }
     
-         function onConnect() {
+    function onConnect() {
         $('.chat input').focus();
         currentRoom = '1';
         mqttClient.subscribe(atopicName(currentRoom));
-        mqttClient.subscribe('ConnectingSpot/bot');
-        mqttClient.subscribe('ConnectingSpot/totalclients');
-        
+        mqttClient.subscribe('ConnectingSpot/onlineclient/#');
+        mqttClient.subscribe('ConnectingSpot/roomclients/#');
+
         initRoom(currentRoom);
         addRoom('old',false,false);
-        seUser();
-        mqttClient.subscribe(nickname);
-        var msag = new Messaging.Message(JSON.stringify({"_id": currentRoom,  "clientIds": nickname})); 
-            msag.destinationName = 'ConnectingSpot/test';
+
+        mqttClient.subscribe(nickname);   
+        var msag = new Messaging.Message(JSON.stringify({"_id": currentRoom,  "clientIds": nickname, is: "online"})); 
+            msag.destinationName = 'ConnectingSpot/onlineclient/' + nickname;
             msag.qos = 1;
             msag.retained = true;
             mqttClient.send(msag);  
-         
-         };
+    };
     
-        window.onload = function() {
-          connect();
-        };
-        
+    window.onload = function() {
+      connect();
+    };
         
        
-jQuery(window).bind(
-    "beforeunload", 
-    function() { 
+    jQuery(window).bind(
+        "beforeunload", 
+        function() { 
+        removeFromRoom();
         var msag = new Messaging.Message(''); 
-            msag.destinationName = 'ConnectingSpot/test';
+            msag.destinationName = 'ConnectingSpot/onlineclient/' +nickname;
             msag.qos = 1;
             msag.retained = true;
             mqttClient.send(msag);
+        }
+    )
+    
+    function changeRoom(room) { 
+          var msag = new Messaging.Message(JSON.stringify({"_id": room,  "clientIds": nickname, is: "online"})); 
+            msag.destinationName = 'ConnectingSpot/onlineclient/' + nickname;
+            msag.qos = 1;
+            msag.retained = true;
+            mqttClient.send(msag); 
     }
-)
+    
+    function removeFromRoom() { 
+         var msag = new Messaging.Message(JSON.stringify({"_id": currentRoom,  "clientIds": nickname, is: "offline"})); 
+            msag.destinationName = 'ConnectingSpot/roomclients/' + nickname;
+            msag.qos = 1;
+            mqttClient.send(msag);
+    }
 
-
-     
     function bindDOMEvents(){
         $('.chat-input input').on('keydown', function(e){
             var key = e.which || e.keyCode;
@@ -111,10 +124,6 @@ jQuery(window).bind(
 
         $('.chat-submit button').on('click', function(){
             handleMessage();
-        });
-
-        $('.chat-right .le-button').on('click', function(){
-            seUser();
         });
 
         $('.chat-rooms ul').on('scroll', function(){
@@ -142,7 +151,6 @@ jQuery(window).bind(
                     }
                     if(room == 'old'){
                         var theRoom = currentRoom;
-                        mqttClient.unsubscribe(atopicName(currentRoom));
                         mqttClient.subscribe('ConnectingSpot/'+theRoom+'/'+nickname);
                         switchRoom(room);
                         var msg = new Messaging.Message(JSON.stringify({room: atopicName(theRoom), id: 'ConnectingSpot/'+theRoom+'/'+nickname}));
@@ -169,12 +177,11 @@ jQuery(window).bind(
                 msg.qos = 1;
                 mqttClient.send(msg);
                 addRoom(nickname+'-'+client,false,false);
-                
             }
         });
     }
   
-   function atopicName(a) {
+    function atopicName(a) {
     return 'ConnectingSpot/Chatroom/'+a;
   } 
 
@@ -225,22 +232,22 @@ jQuery(window).bind(
             mqttClient.send(msg);
             
             $('.chat-input input').val('');
-        } seUser();
+        } 
     }}
 
     function handlePictureUpload(files, callback) {
-            for(var i = 0; i < files.length; i++) {
-                // send the message to the server with the room name
-                var reader = new FileReader();
-                reader.onloadend = function(evt) {
-                    var msg = new Messaging.Message(JSON.stringify({nickname: nickname, message: evt.target.result,timestamp: Date.now(), type: 'image'}));
-                    msg.destinationName = atopicName(currentRoom);
-                    msg.qos = 1;
-                    mqttClient.send(msg);
-                };
-                reader.readAsDataURL(files[i]);
-            }
-            callback();
+        for(var i = 0; i < files.length; i++) {
+            // send the message to the server with the room name
+            var reader = new FileReader();
+            reader.onloadend = function(evt) {
+                var msg = new Messaging.Message(JSON.stringify({nickname: nickname, message: evt.target.result,timestamp: Date.now(), type: 'image'}));
+                msg.destinationName = atopicName(currentRoom);
+                msg.qos = 1;
+                mqttClient.send(msg);
+            };
+            reader.readAsDataURL(files[i]);
+        }
+        callback();
     }
     // insert a message to the chat window, this function can be
     // called with some flags
@@ -290,42 +297,37 @@ jQuery(window).bind(
             (date.getMinutes() < 10 ? '0' + date.getMinutes().toString() : date.getMinutes());
     }
     
-    function seUser(){
-        if(currentRoom != 'old'){
-        $('.chat-clients ul').empty();
-        addClient({ nickname: nickname, clientId: nickname }, false, true);
-        var msig = new Messaging.Message(JSON.stringify({"message": "bot"}));
-        msig.destinationName = 'ConnectingSpot/bot';
-        msig.qos = 1;
-        mqttClient.send(msig);
-      }
-    }
+    function removeClient(client){
+        $('.chat-clients ul li[data-clientId="' + client + '"]').remove();
+}
     
    function onMessageArrived(message) {
         var msg = JSON.parse(message.payloadString);
         var topic = message.destinationName;
-        if(topic == 'ConnectingSpot/bot') {
-            
-            var msag = new Messaging.Message(JSON.stringify({"_id": currentRoom,  "clientIds": nickname})); 
-            msag.destinationName = 'ConnectingSpot/totalclients';
-            msag.qos = 1;
-            mqttClient.send(msag);
-            
-        } else if(topic == nickname) {
+         if(topic == nickname) {
             addRoom(msg.room,false,false);
-        } else if(topic == 'ConnectingSpot/totalclients') {
-            if(msg._id == currentRoom && msg._id != atopicName('old')) {
+        } else {
+           if(msg.is == 'online'){
+                 if(msg._id == currentRoom && msg._id != ('old')) {
                 for(var i = 0, len = msg.clientIds.length; i < len; i++){
                     if(msg.clientIds && msg.clientIds != nickname){
                         addClient({nickname: msg.clientIds, clientId: msg.clientIds}, false);
+                        nick.push(msg.clientIds);
                     }
                 }
             }
-        } else {
-            if(msg.type == 'image') {
+                
+            }
+            if(msg.is == 'offline'){
+                 if(msg._id == currentRoom && msg._id != ('old')) {
+                        removeClient(msg.clientIds);
+            }
+                
+            } if(msg.type == 'image' && msg.is != 'online' && msg.is != 'offline' ) {
                 insertImage(msg.nickname, msg.message, msg.timestamp, msg.nickname == nickname, false);
              
-            } else  {
+            }
+            else if(msg.is != 'online' && msg.is != 'offline')  {
                 insertMessage(msg.nickname, msg.message, msg.timestamp, msg.nickname == nickname, false);
             }
         }
@@ -339,8 +341,14 @@ jQuery(window).bind(
     }
 
     function switchRoom(room) {
+        mqttClient.unsubscribe('ConnectingSpot/onlineclient/#');
+        removeFromRoom();
         setCurrentRoom(room);
-        seUser();
+        changeRoom(room);
+        $('.chat-clients ul').empty();
+        addClient({ nickname: nickname, clientId: nickname }, false, true);
+        mqttClient.subscribe('ConnectingSpot/onlineclient/#');
+       
     }
 
     $(function(){
