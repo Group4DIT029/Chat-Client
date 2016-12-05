@@ -12,11 +12,12 @@
  * revision:
  * 2016-11-27, Sayf Rashid:
  *      - Changes made as part of the course DIT029 H16 Project: Software Architecture for Distributed Systems in the SEM program in Gothenburg university. 
- *      - Removing the server, we are going to use the PRATA broker and erlang will be responsible for connecting to the mysql server and handling the chat history. 
+ *      - Removing the server, we are going to use the PRATA broker(right now mqttdashboard is used) and erlang will be responsible for connecting to the mysql server and handling the chat history. 
  *      - Implementing all the server functionality(either through an erlang client or finding a variant by using the chat client directly). For example seeing which clients are subscribing to the chatroom.
- *      - 'old' room where the client can see his the chat history of the specific chat room(an erlang client will responsible of storing and publishing the old messages).
+ *      - 'old' room where the client can see the chat history of the specific chat room(an erlang client will responsible of storing and publishing the old messages).
  *      - Private chat, the ability to directly chat with another client by creating a room comprimising of both their client Ids.
  *      - Removed manually add user (the user nickname and UUID(which will be the client Id) will be handled elsewhere).
+ *      
  */  
 
 (function($){
@@ -64,7 +65,7 @@
         currentRoom = '1';
         mqttClient.subscribe(atopicName(currentRoom));
         mqttClient.subscribe('ConnectingSpot/onlineclient/#');
-        mqttClient.subscribe('ConnectingSpot/roomclients/#');
+        mqttClient.subscribe('ConnectingSpot/roomclients');
 
         initRoom(currentRoom);
         addRoom('old',false,false);
@@ -104,7 +105,7 @@
     
     function removeFromRoom() { 
          var msag = new Messaging.Message(JSON.stringify({"_id": currentRoom,  "clientIds": nickname, is: "offline"})); 
-            msag.destinationName = 'ConnectingSpot/roomclients/' + nickname;
+            msag.destinationName = 'ConnectingSpot/roomclients';
             msag.qos = 1;
             mqttClient.send(msag);
     }
