@@ -17,7 +17,7 @@
  *      - 'old' room where the client can see the chat history of the specific chat room(an erlang client will responsible of storing and publishing the old messages).
  *      - Private chat, the ability to directly chat with another client by creating a room comprimising of both their client Ids.
  *      - Removed manually add user (the user nickname and UUID(which will be the client Id) will be handled elsewhere).
- *      
+ *       
  */  
 
 (function($){
@@ -64,7 +64,7 @@
         $('.chat input').focus();
         currentRoom = '1';
         mqttClient.subscribe(atopicName(currentRoom));
-        mqttClient.subscribe('ConnectingSpot/onlineclient/#');
+        mqttClient.subscribe('ConnectingSpot/'+currentRoom + '/onlineclient/#');
         mqttClient.subscribe('ConnectingSpot/roomclients');
 
         initRoom(currentRoom);
@@ -72,7 +72,7 @@
 
         mqttClient.subscribe(nickname);   
         var msag = new Messaging.Message(JSON.stringify({"_id": currentRoom,  "clientIds": nickname, is: "online"})); 
-            msag.destinationName = 'ConnectingSpot/onlineclient/' + nickname;
+            msag.destinationName = 'ConnectingSpot/'+ currentRoom+'/onlineclient/' + nickname;
             msag.qos = 1;
             msag.retained = true;
             mqttClient.send(msag);  
@@ -82,13 +82,20 @@
       connect();
     };
         
-       
+    function removeRetained(){
+         var msag = new Messaging.Message(''); 
+            msag.destinationName = 'ConnectingSpot/'+currentRoom+'/onlineclient/' +nickname;
+            msag.qos = 1;
+            msag.retained = true;
+            mqttClient.send(msag);
+    }
+    
     jQuery(window).bind(
         "beforeunload", 
         function() { 
         removeFromRoom();
         var msag = new Messaging.Message(''); 
-            msag.destinationName = 'ConnectingSpot/onlineclient/' +nickname;
+            msag.destinationName = 'ConnectingSpot/'+currentRoom+'/onlineclient/' +nickname;
             msag.qos = 1;
             msag.retained = true;
             mqttClient.send(msag);
@@ -97,7 +104,7 @@
     
     function changeRoom(room) { 
           var msag = new Messaging.Message(JSON.stringify({"_id": room,  "clientIds": nickname, is: "online"})); 
-            msag.destinationName = 'ConnectingSpot/onlineclient/' + nickname;
+            msag.destinationName = 'ConnectingSpot/'+room+'/onlineclient/' + nickname;
             msag.qos = 1;
             msag.retained = true;
             mqttClient.send(msag); 
@@ -151,6 +158,7 @@
                         removeRoom(currentRoom);
                     }
                     if(room == 'old'){
+                        mqttClient.unsubscribe(atopicName(currentRoom))
                         var theRoom = currentRoom;
                         mqttClient.subscribe('ConnectingSpot/'+theRoom+'/'+nickname);
                         switchRoom(room);
@@ -342,13 +350,14 @@
     }
 
     function switchRoom(room) {
-        mqttClient.unsubscribe('ConnectingSpot/onlineclient/#');
+       // mqttClient.unsubscribe('ConnectingSpot/onlineclient/#');
+        removeRetained();
         removeFromRoom();
         setCurrentRoom(room);
         changeRoom(room);
         $('.chat-clients ul').empty();
         addClient({ nickname: nickname, clientId: nickname }, false, true);
-        mqttClient.subscribe('ConnectingSpot/onlineclient/#');
+        mqttClient.subscribe('ConnectingSpot/'+room+'/onlineclient/#');
        
     }
 
