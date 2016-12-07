@@ -8,7 +8,7 @@
 
 - implementing all the server functionality(by using the chat client directly).
 
-- 'old' room where the client can see the old messages of the specific chat room(an erlang client will responsible of storing and publishing the queries https://github.com/Group4DIT029/Erlang-Database-mqttClient).
+- 'old' room where the client can see the old messages of the specific chat room(an erlang client will responsible for retrieving the old messages). https://github.com/Group4DIT029/Erlang-Database-mqttClient
 
 - The ability to directly chat with another client by creating a room comprimising of both their client Ids.
 
