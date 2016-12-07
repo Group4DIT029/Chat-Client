@@ -62,11 +62,10 @@
     function onConnect() {
         currentRoom = '1';
         mqttClient.subscribe(atopicName(currentRoom));
-        mqttClient.subscribe('ConnectingSpot/'+currentRoom + '/onlineclient/#');
-        mqttClient.subscribe('ConnectingSpot/roomclients');
+        mqttClient.subscribe('ConnectingSpot/'+currentRoom + '/#');
         initRoom(currentRoom);
         addRoom('old',false,false);
-        mqttClient.subscribe(nickname);  
+        mqttClient.subscribe('ConnectingSpot/'+nickname);  
         enterRoom(currentRoom);      
     };
     
@@ -92,7 +91,7 @@
     
     function removeFromRoom() { 
         var msag = new Messaging.Message(JSON.stringify({"_id": currentRoom,  "clientIds": nickname, is: "offline"})); 
-            msag.destinationName = 'ConnectingSpot/roomclients';
+            msag.destinationName = 'ConnectingSpot/'+currentRoom + '/onlineclient';
             msag.qos = 1;
             mqttClient.send(msag);
     }
@@ -169,7 +168,7 @@
             if(client != nickname){
                 
                 var msg = new Messaging.Message(JSON.stringify({room:nickname+'-'+client}));
-                msg.destinationName = client;
+                msg.destinationName = 'ConnectingSpot/' + client;
                 msg.qos = 1;
                 mqttClient.send(msg);
                 addRoom(nickname+'-'+client,false,false);
@@ -300,7 +299,7 @@
    function onMessageArrived(message) {
         var msg = JSON.parse(message.payloadString);
         var topic = message.destinationName;
-        if(topic == nickname) {
+        if(topic == 'ConnectingSpot/'+nickname) {
             addRoom(msg.room,false,false);
         }else {
             if(msg.is == 'online'){
@@ -338,7 +337,7 @@
         enterRoom(room);
         $('.chat-clients ul').empty();
         addClient({ nickname: nickname, clientId: nickname }, false, true);
-        mqttClient.subscribe('ConnectingSpot/'+room+'/onlineclient/#'); 
+        mqttClient.subscribe('ConnectingSpot/'+room+'/#'); 
     }
 
     $(function(){
