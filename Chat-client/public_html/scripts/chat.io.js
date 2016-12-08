@@ -25,9 +25,10 @@
     // create global app parameters...
     var serverAddress = 'broker.mqttdashboard.com', //server ip
         port = 8000, //port
-        mqttClient = null,
+           mqttClient = null,
         nickname = randomString(6),
         currentRoom = null,
+        old = 'Chat History',
    
         tmplt = {
             room: [
@@ -64,9 +65,9 @@
         mqttClient.subscribe(atopicName(currentRoom));
         mqttClient.subscribe('ConnectingSpot/'+currentRoom + '/#');
         initRoom(currentRoom);
-        addRoom('old',false,false);
+        addRoom(old,false,false);
         mqttClient.subscribe('ConnectingSpot/'+nickname);  
-        enterRoom(currentRoom);      
+        enterRoom(currentRoom); 
     };
     
     window.onload = function() {
@@ -141,15 +142,15 @@
          
             if(room != currentRoom){
                
-                if(currentRoom != '1' && currentRoom != 'old'){
+                if(currentRoom != '1' && currentRoom != old){
                         removeRoom(currentRoom);
                     }
-                    if(room == 'old'){
+                    if(room == old){
                         mqttClient.unsubscribe(atopicName(currentRoom));
                         var theRoom = currentRoom;
-                        mqttClient.subscribe('ConnectingSpot/'+theRoom+'/'+nickname);
+                        mqttClient.subscribe('ConnectingSpot/history/'+theRoom+'/'+nickname);
                         switchRoom(room);
-                        var msg = new Messaging.Message(JSON.stringify({room: atopicName(theRoom), id: 'ConnectingSpot/'+theRoom+'/'+nickname}));
+                        var msg = new Messaging.Message(JSON.stringify({room: atopicName(theRoom), id: 'ConnectingSpot/history/'+theRoom+'/'+nickname}));
                             msg.destinationName = 'ConnectingSpot/Database/select';
                             msg.qos = 1;
                             mqttClient.send(msg);
@@ -216,7 +217,7 @@
     }
     // handle the client messages
     function handleMessage(){
-        if(currentRoom != 'old'){
+        if(currentRoom != old){
        
         var message = $('.chat-input input').val().trim();
         if(message){
@@ -285,9 +286,11 @@
         $('.chat-messages').animate({ scrollTop: $('.chat-messages ul').height() }, 100);
     }
 
-    function getTime(tim){
+     function getTime(tim){
         var date = new Date(tim);
-        return(date.getFullYear()) +':'+ date.getMonth()+ ':' + (date.getDate()) +' | '
+        return(date.getFullYear()) +':'+ ((date.getMonth())< 10 ? '0' + 
+                date.getMonth().toString() : date.getMonth()+1)+ ':' + 
+                (date.getDate()< 10 ? '0' + date.getDate().toString() : date.getDate()) +' | '
                 + (date.getHours() < 10 ? '0' + date.getHours().toString() : date.getHours()) + ':' +
             (date.getMinutes() < 10 ? '0' + date.getMinutes().toString() : date.getMinutes());
     }
@@ -303,14 +306,14 @@
             addRoom(msg.room,false,false);
         }else {
             if(msg.is == 'online'){
-                if(msg._id == currentRoom && msg._id != ('old')) {
+                if(msg._id == currentRoom && msg._id != (old)) {
                     if(msg.clientIds && msg.clientIds != nickname){
                         addClient({nickname: msg.clientIds, clientId: msg.clientIds}, false);
                     }
                 }  
             }
             if(msg.is == 'offline'){
-                 if(msg._id == currentRoom && msg._id != ('old')) {
+                 if(msg._id == currentRoom && msg._id != (old)) {
                         removeClient(msg.clientIds);
             }   
             } if(msg.type == 'image' && msg.is != 'online' && msg.is != 'offline' ) {
@@ -331,14 +334,16 @@
     }
 
     function switchRoom(room) {
+        mqttClient.unsubscribe('ConnectingSpot/'+room+'/#');
         removeRetained();
         removeFromRoom();
         setCurrentRoom(room);
-        enterRoom(room);
+        enterRoom(currentRoom);
         $('.chat-clients ul').empty();
         addClient({ nickname: nickname, clientId: nickname }, false, true);
-        mqttClient.subscribe('ConnectingSpot/'+room+'/#'); 
+        mqttClient.subscribe('ConnectingSpot/'+room+'/#');
     }
+    
 
     $(function(){
         bindDOMEvents();
