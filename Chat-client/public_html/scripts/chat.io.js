@@ -14,7 +14,7 @@
  *      - Changes made as part of the course DIT029 H16 Project: Software Architecture for Distributed Systems in the SEM program in Gothenburg university. 
  *      - Removing the server, we are going to use the PRATA broker(right now mqttdashboard is used) and erlang will be responsible for connecting to the mysql server and handling the chat history. 
  *      - Implementing all the server functionality(either through an erlang client or finding a variant by using the chat client directly). For example seeing which clients are subscribing to the chatroom.
- *      - 'old' room where the client can see the chat history of the specific chat room(an erlang client will responsible of storing and publishing the old messages).
+ *      - 'Chat History' room where the client can see the chat history of the specific chat room(an erlang client will responsible of storing and publishing the old messages).
  *      - Private chat, the ability to directly chat with another client by creating a room comprimising of both their client Ids.
  *      - Removed manually add user (the user nickname and UUID(which will be the client Id) will be handled elsewhere).
  *       
@@ -23,10 +23,10 @@
 (function($){
 
     // create global app parameters...
-    var serverAddress = 'broker.mqttdashboard.com', //server ip
+    var serverAddress = 'broker.hivemq.com', //server ip
         port = 8000, //port
-           mqttClient = null,
-        nickname = randomString(6),
+        mqttClient = null,
+        name = randomString(6),
         currentRoom = null,
         old = 'Chat History',
    
@@ -38,7 +38,7 @@
             ].join(""),
             client: [
                 '<li data-clientId="${clientId}" class="cf">',
-                '<div class="fl clientName"><span class="icon"></span> ${nickname}</div>',
+                '<div class="fl clientName"><span class="icon"></span> ${name}</div>',
                 '<div class="fr composing"></div>',
                 '</li>'
             ].join(""),
@@ -55,7 +55,7 @@
         };
         
     function connect(){
-        mqttClient = new Messaging.Client(serverAddress, port, nickname);
+        mqttClient = new Messaging.Client(serverAddress, port, name);
         mqttClient.connect({onSuccess:onConnect, keepAliveInterval: 0});
         mqttClient.onMessageArrived = onMessageArrived;
     }
@@ -65,8 +65,8 @@
         mqttClient.subscribe(atopicName(currentRoom));
         mqttClient.subscribe('ConnectingSpot/'+currentRoom + '/#');
         initRoom(currentRoom);
-        addRoom(old,false,false);
-        mqttClient.subscribe('ConnectingSpot/'+nickname);  
+        addRoom(old,false);
+        mqttClient.subscribe('ConnectingSpot/'+name);  
         enterRoom(currentRoom); 
     };
     
@@ -83,15 +83,15 @@
     )
     
     function enterRoom(room) { 
-         var msag = new Messaging.Message(JSON.stringify({"_id": room,  "clientIds": nickname, is: "online"})); 
-            msag.destinationName = 'ConnectingSpot/'+room+'/onlineclient/' + nickname;
+         var msag = new Messaging.Message(JSON.stringify({"room": room,  "name": name, is: "online"})); 
+            msag.destinationName = 'ConnectingSpot/'+room+'/onlineclient/' + name;
             msag.qos = 1;
             msag.retained = true;
             mqttClient.send(msag); 
     }
     
     function removeFromRoom() { 
-        var msag = new Messaging.Message(JSON.stringify({"_id": currentRoom,  "clientIds": nickname, is: "offline"})); 
+        var msag = new Messaging.Message(JSON.stringify({"room": currentRoom,  "name": name, is: "offline"})); 
             msag.destinationName = 'ConnectingSpot/'+currentRoom + '/onlineclient';
             msag.qos = 1;
             mqttClient.send(msag);
@@ -99,7 +99,7 @@
     
     function removeRetained(){
         var msag = new Messaging.Message(''); 
-            msag.destinationName = 'ConnectingSpot/'+currentRoom+'/onlineclient/' +nickname;
+            msag.destinationName = 'ConnectingSpot/'+currentRoom+'/onlineclient/' +name;
             msag.qos = 1;
             msag.retained = true;
             mqttClient.send(msag);
@@ -145,15 +145,15 @@
                 if(currentRoom != '1' && currentRoom != old){
                         removeRoom(currentRoom);
                     }
-                    if(room == old){
-                        mqttClient.unsubscribe(atopicName(currentRoom));
-                        var theRoom = currentRoom;
-                        mqttClient.subscribe('ConnectingSpot/history/'+theRoom+'/'+nickname);
-                        switchRoom(room);
-                        var msg = new Messaging.Message(JSON.stringify({room: atopicName(theRoom), id: 'ConnectingSpot/history/'+theRoom+'/'+nickname}));
-                            msg.destinationName = 'ConnectingSpot/Database/select';
-                            msg.qos = 1;
-                            mqttClient.send(msg);
+                if(room == old){
+                    mqttClient.unsubscribe(atopicName(currentRoom));
+                    var theRoom = currentRoom;
+                    mqttClient.subscribe('ConnectingSpot/history/'+theRoom+'/'+name);
+                    switchRoom(room);
+                    var msg = new Messaging.Message(JSON.stringify({room: atopicName(theRoom), id: 'ConnectingSpot/history/'+theRoom+'/'+name}));
+                        msg.destinationName = 'ConnectingSpot/Database/select';
+                        msg.qos = 1;
+                        mqttClient.send(msg);
                      
                 }else{
                     mqttClient.unsubscribe(atopicName(currentRoom));
@@ -166,13 +166,13 @@
         
         $('.chat-clients ul li').live('click', function(){
             var client = $(this).attr('data-clientId');
-            if(client != nickname){
+            if(client != name){
                 
-                var msg = new Messaging.Message(JSON.stringify({room:nickname+'-'+client}));
+                var msg = new Messaging.Message(JSON.stringify({room:name+'-'+client}));
                 msg.destinationName = 'ConnectingSpot/' + client;
                 msg.qos = 1;
                 mqttClient.send(msg);
-                addRoom(nickname+'-'+client,false,false);
+                addRoom(name+'-'+client,false);
             }
         });
     }
@@ -181,7 +181,7 @@
     return 'ConnectingSpot/Chatroom/'+a;
   } 
 
-    function addRoom(name, announce, protected){
+    function addRoom(name, protected){
         var lockCss = 'display: ' + (protected? 'inline' : 'none');
         if($('.chat-rooms ul li[data-roomId="' + name + '"]').length == 0){
             $.tmpl(tmplt.room, { room: name, lockCss: lockCss}).appendTo('.chat-rooms ul');  
@@ -192,7 +192,7 @@
         $('.chat-rooms ul li[data-roomId="' + name + '"]').remove();
     }
 
-    function addClient(client, announce, isMe){
+    function addClient(client, isMe){
         var $html = $.tmpl(tmplt.client, client);
         if(isMe){
             $html.addClass('me');
@@ -222,7 +222,7 @@
         var message = $('.chat-input input').val().trim();
         if(message){
             // send the message to the server with the room name
-            var msg = new Messaging.Message(JSON.stringify({nickname: nickname, message: message, timestamp: Date.now()}));
+            var msg = new Messaging.Message(JSON.stringify({name: name, message: message, timestamp: Date.now()}));
             msg.destinationName = atopicName(currentRoom);
             msg.qos = 1;
             mqttClient.send(msg);
@@ -235,7 +235,7 @@
         for(var i = 0; i < files.length; i++) {
             var reader = new FileReader();
             reader.onloadend = function(evt) {
-                var msg = new Messaging.Message(JSON.stringify({nickname: nickname, message: evt.target.result,timestamp: Date.now(), type: 'image'}));
+                var msg = new Messaging.Message(JSON.stringify({name: name, message: evt.target.result,timestamp: Date.now(), type: 'image'}));
                 msg.destinationName = atopicName(currentRoom);
                 msg.qos = 1;
                 mqttClient.send(msg);
@@ -246,7 +246,7 @@
     }
     // insert a message to the chat window, this function can be
     // called with some flags
-    function insertMessage(sender, message, time, isMe, isServer){
+    function insertMessage(sender, message, time, isMe){
         if (typeof time === 'string' || time instanceof String){
             var a = parseInt(time);
             time = a;
@@ -256,10 +256,10 @@
             text: message,
             time: getTime(time)
         });
-        setMessageCss($html, isMe, isServer);
+        setMessageCss($html, isMe);
     }
 
-    function insertImage(sender, message, time, isMe, isServer){
+    function insertImage(sender, message, time, isMe){
         if (typeof time === 'string' || time instanceof String){
             var a = parseInt(time);
             time = a;
@@ -275,10 +275,10 @@
         img.onload = function() {
             context.drawImage(img,0,0,200,180);
         };
-        setMessageCss($html, isMe, isServer);
+        setMessageCss($html, isMe);
     }
 
-    function setMessageCss($html, isMe, isServer){
+    function setMessageCss($html, isMe){
         if(isMe){
             $html.addClass('marker');
         }
@@ -302,26 +302,26 @@
    function onMessageArrived(message) {
         var msg = JSON.parse(message.payloadString);
         var topic = message.destinationName;
-        if(topic == 'ConnectingSpot/'+nickname) {
+        if(topic == 'ConnectingSpot/'+name) {
             addRoom(msg.room,false,false);
         }else {
             if(msg.is == 'online'){
-                if(msg._id == currentRoom && msg._id != (old)) {
-                    if(msg.clientIds && msg.clientIds != nickname){
-                        addClient({nickname: msg.clientIds, clientId: msg.clientIds}, false);
+                if(msg.room == currentRoom && msg.room != (old)) {
+                    if(msg.name && msg.name != name){
+                        addClient({name: msg.name, clientId: msg.name});
                     }
                 }  
             }
             if(msg.is == 'offline'){
-                 if(msg._id == currentRoom && msg._id != (old)) {
-                        removeClient(msg.clientIds);
+                 if(msg.room == currentRoom && msg.room != (old)) {
+                        removeClient(msg.name);
             }   
             } if(msg.type == 'image' && msg.is != 'online' && msg.is != 'offline' ) {
-                insertImage(msg.nickname, msg.message, msg.timestamp, msg.nickname == nickname, false);
+                insertImage(msg.name, msg.message, msg.timestamp, msg.name == name, false);
              
             }
             else if(msg.is != 'online' && msg.is != 'offline')  {
-                insertMessage(msg.nickname, msg.message, msg.timestamp, msg.nickname == nickname, false);
+                insertMessage(msg.name, msg.message, msg.timestamp, msg.name == name, false);
             }
         }
     }
@@ -330,17 +330,20 @@
         addRoom(room, false, protected);
         setCurrentRoom(room, protected);
         $('.chat-clients ul').empty();
-        addClient({ nickname: nickname, clientId: nickname }, false, true);
+        addClient({ name: name, clientId: name }, true);
     }
 
     function switchRoom(room) {
+        if(currentRoom == old){
+             mqttClient.unsubscribe('ConnectingSpot/history/'+room+'/'+name);
+        }
         mqttClient.unsubscribe('ConnectingSpot/'+room+'/#');
         removeRetained();
         removeFromRoom();
         setCurrentRoom(room);
         enterRoom(currentRoom);
         $('.chat-clients ul').empty();
-        addClient({ nickname: nickname, clientId: nickname }, false, true);
+        addClient({ name: name, clientId: name }, true);
         mqttClient.subscribe('ConnectingSpot/'+room+'/#');
     }
     
