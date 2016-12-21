@@ -23,8 +23,8 @@
 (function($){
 
     // create global app parameters...
-    var serverAddress = 'broker.hivemq.com', //server ip
-        port = 8000, //port
+    var serverAddress = 'prata.technocreatives.com', //server ip
+        port = 1884, //port
         mqttClient = null,
         name = randomString(6),
         currentRoom = null,
