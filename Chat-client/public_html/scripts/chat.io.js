@@ -17,14 +17,11 @@
  *      - 'Chat History' room where the client can see the chat history of the specific chat room(an erlang client will responsible of storing and publishing the old messages).
  *      - Private chat, the ability to directly chat with another client by creating a room comprimising of both their client Ids.
  *      - Removed manually add user (the user nickname and UUID(which will be the client Id) will be handled elsewhere).
- *       
+ *      - Improved time handling added year:month:day, now timestamp is sent in the message.  
  */  
 
-(function($){
-
-    // create global app parameters...
-    var serverAddress = 'prata.technocreatives.com', //server ip
-        port = 1884, //port
+ var serverAddress = 'prata.technocreatives.com', //server ip
+        port =  1884,  //port
         mqttClient = null,
         name = randomString(6),
         currentRoom = null,
@@ -68,6 +65,7 @@
         addRoom(old,false);
         mqttClient.subscribe('ConnectingSpot/'+name);  
         enterRoom(currentRoom); 
+        presence();
     };
     
     window.onload = function() {
@@ -79,8 +77,24 @@
         function() { 
         removeFromRoom();
         removeRetained();
+        removePresence();
         }
     )
+    function presence() { 
+         var msag = new Messaging.Message(JSON.stringify({"version": 1,  "groupName": "group4", "groupNumber": 4, "connectedAt": Date.now(),"rfcs": ["1","4","5","6","21","25","27"],
+        "clientSoftware": "ConnectingSpot",clientVersion: 1 })); 
+            msag.destinationName = 'presence/'+name;
+            msag.qos = 1;
+            msag.retained = true;
+            mqttClient.send(msag); 
+    }
+    function removePresence(){
+        var msag = new Messaging.Message(''); 
+            msag.destinationName = 'presence/'+name;
+            msag.qos = 1;
+            msag.retained = true;
+            mqttClient.send(msag);
+    }
     
     function enterRoom(room) { 
          var msag = new Messaging.Message(JSON.stringify({"room": room,  "name": name, is: "online"})); 
@@ -144,7 +158,7 @@
                
                 if(currentRoom != '1' && currentRoom != old){
                         removeRoom(currentRoom);
-                    }
+                }
                 if(room == old){
                     mqttClient.unsubscribe(atopicName(currentRoom));
                     var theRoom = currentRoom;
@@ -154,11 +168,10 @@
                         msg.destinationName = 'ConnectingSpot/Database/select';
                         msg.qos = 1;
                         mqttClient.send(msg);
-                     
+
                 }else{
                     mqttClient.unsubscribe(atopicName(currentRoom));
                     mqttClient.subscribe(atopicName(room));
-                    
                     switchRoom(room);
                 }
             }
