@@ -67,7 +67,7 @@
         addRoom(old,false);
         mqttClient.subscribe('ConnectingSpot/'+name);  
         enterRoom(currentRoom); 
-      //  presence();
+        presence();
     }
     
     window.onload = function() {
@@ -79,7 +79,7 @@
         function() { 
         removeFromRoom();
         removeRetained();
-      //  removePresence();
+        removePresence();
         }
     )
     function presence() { 
