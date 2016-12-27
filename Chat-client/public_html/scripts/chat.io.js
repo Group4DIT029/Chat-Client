@@ -11,14 +11,22 @@
  *
  * revision:
  * 2016-11-27, Sayf Rashid:
- *      - Changes made as part of the course DIT029 H16 Project: Software Architecture for Distributed Systems in the SEM program in Gothenburg university. 
- *      - Removing the server, we are going to use the PRATA broker(right now mqttdashboard is used) and erlang will be responsible for connecting to the mysql server and handling the chat history. 
- *      - Implementing all the server functionality(either through an erlang client or finding a variant by using the chat client directly). For example seeing which clients are subscribing to the chatroom.
- *      - 'Chat History' room where the client can see the chat history of the specific chat room(an erlang client will responsible of storing and publishing the old messages).
+ *      - Changes made as part of the course DIT029 H16 Project: 
+ *        Software Architecture for Distributed Systems in the SEM program in Gothenburg university. 
+ *      - Removing the server, we are going to use the PRATA broker
+ *        (right now mqttdashboard is used) and erlang will be responsible for 
+ *        connecting to the mysql server and handling the chat history. 
+ *      - Implementing all the server functionality(by using the chat client directly). 
+ *        For example, chat presence,meaning seeing which clients are present in the chatroom.
+ *      - 'Chat History' room where the client can see the chat history of the 
+ *        specific chat room(an erlang client will responsible of storing and publishing the old messages).
  *      - Private chat, the ability to directly chat with another client by creating a room comprimising of both their client Ids.
  *      - Removed manually add user (the user nickname and UUID(which will be the client Id) will be handled elsewhere).
- *      - Improved time handling added year:month:day, now timestamp is sent in the message.  
- */  
+ *      - Removed manual room creation, the chat room is either created elsewhere or when creating a private chatroom
+ *      - Improved time handling added year:month:day, now a field timestamp 
+ *        with the current timestamp is included in the JSON in the chat message.  
+ */ 
+
 (function($){
 	
 	
