@@ -25,8 +25,7 @@
  *      - Removed manual room creation, the chat room is either created elsewhere or when creating a private chatroom
  *      - Improved time handling added year:month:day, now a field timestamp 
  *        with the current timestamp is included in the JSON in the chat message.  
- */ 
-
+ */  
 (function($){
 	
 	
@@ -312,7 +311,7 @@
      function getTime(tim){
         var date = new Date(tim);
         return(date.getFullYear()) +':'+ ((date.getMonth())< 10 ? '0' + 
-                date.getMonth().toString() : date.getMonth()+1)+ ':' + 
+                (date.getMonth()+1).toString() : date.getMonth()+1)+ ':' + 
                 (date.getDate()< 10 ? '0' + date.getDate().toString() : date.getDate()) +' | '
                 + (date.getHours() < 10 ? '0' + date.getHours().toString() : date.getHours()) + ':' +
             (date.getMinutes() < 10 ? '0' + date.getMinutes().toString() : date.getMinutes());
