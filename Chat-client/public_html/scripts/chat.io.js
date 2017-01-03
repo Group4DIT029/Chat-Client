@@ -13,8 +13,8 @@
  * 2016-11-27, Sayf Rashid:
  *      - Changes made as part of the course DIT029 H16 Project: 
  *        Software Architecture for Distributed Systems in the SEM program in Gothenburg university. 
- *      - Removing the server, we are going to use the PRATA broker
- *        (right now mqttdashboard is used) and erlang will be responsible for 
+ *      - Removing the node.js backend including the embedded broker "mosca", we are going to use the PRATA broker
+ *        (right now mqttdashboard is used) and a erlang client will be responsible for 
  *        connecting to the mysql server and handling the chat history. 
  *      - Implementing all the server functionality(by using the chat client directly). 
  *        For example, chat presence,meaning seeing which clients are present in the chatroom.
