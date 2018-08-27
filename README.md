@@ -10,7 +10,7 @@
 
 - 'Chat History' room where the client can see the old messages of the specific chat room(an erlang client will responsible for retrieving the old messages). https://github.com/Group4DIT029/Erlang-Database-mqttClient
 
-- The ability to directly chat with another client by creating a room comprimising of both their client Ids.
+- The ability to directly chat with another client by creating a room comprising of both their client Ids.
 
 - Removed manually add user (the user nickname and UUID(which will be the client Id) will be handled elsewhere)
 
